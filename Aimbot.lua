@@ -11,6 +11,7 @@ local AIMBOT_ENABLED = false
 local SNOW_FOV = false
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
+local FOV_RADIUS = 80  -- Tamanho inicial do FOV
 
 -- Funções auxiliares
 local function getClosestPlayer()
@@ -21,7 +22,7 @@ local function getClosestPlayer()
             if onScreen then
                 local mouse = LocalPlayer:GetMouse()
                 local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
-                if distance < dist then
+                if distance < dist and distance <= FOV_RADIUS then  -- Verificar se está dentro do FOV
                     closest = player
                     dist = distance
                 end
@@ -93,12 +94,13 @@ RunService.RenderStepped:Connect(function()
             snowCircle = Drawing.new("Circle")
             snowCircle.Color = Color3.fromRGB(200, 200, 255)
             snowCircle.Thickness = 1.5
-            snowCircle.Radius = 80
+            snowCircle.Radius = FOV_RADIUS
             snowCircle.Transparency = 0.6
             snowCircle.Filled = false
         end
         local mouse = LocalPlayer:GetMouse()
         snowCircle.Position = Vector2.new(mouse.X, mouse.Y)
+        snowCircle.Radius = FOV_RADIUS
         snowCircle.Visible = true
     elseif snowCircle then
         snowCircle.Visible = false
@@ -214,10 +216,29 @@ local function createMenu()
         colorButton.BackgroundColor3 = ESP_COLOR
     end)
 
+    -- Slider para o FOV
+    local fovSlider = Instance.new("TextButton")
+    fovSlider.Size = UDim2.new(0, 260, 0, 50)
+    fovSlider.Position = UDim2.new(0, 20, 0, 300)
+    fovSlider.Text = "FOV: " .. FOV_RADIUS
+    fovSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    fovSlider.TextColor3 = Color3.fromRGB(0, 255, 255)
+    fovSlider.Font = Enum.Font.SciFi
+    fovSlider.TextSize = 22
+    fovSlider.AutoButtonColor = false
+    fovSlider.Parent = panel
+
+    Instance.new("UICorner", fovSlider).CornerRadius = UDim.new(0, 10)
+
+    fovSlider.MouseButton1Click:Connect(function()
+        FOV_RADIUS = FOV_RADIUS == 80 and 120 or 80  -- Alternar o tamanho do FOV
+        fovSlider.Text = "FOV: " .. FOV_RADIUS
+    end)
+
     -- Botões de abrir/fechar o painel
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 260, 0, 50)
-    toggleButton.Position = UDim2.new(0, 20, 0, 300)
+    toggleButton.Position = UDim2.new(0, 20, 0, 360)
     toggleButton.Text = "Abrir/Fechar Menu"
     toggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     toggleButton.TextColor3 = Color3.fromRGB(0, 255, 255)
