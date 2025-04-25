@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
 repeat wait() until LocalPlayer:FindFirstChild("PlayerGui")
 
@@ -12,13 +12,15 @@ local SNOW_FOV = false
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
 local FOV_RADIUS = 80  -- Tamanho inicial do FOV
+local noclip = false
+local noclipButton -- Para o botão do NoFly
 
 -- Funções auxiliares
 local function getClosestPlayer()
     local closest, dist = nil, math.huge
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character.Head.Position)
+            local pos, onScreen = camera:WorldToViewportPoint(player.Character.Head.Position)
             if onScreen then
                 local mouse = LocalPlayer:GetMouse()
                 local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
@@ -40,7 +42,7 @@ RunService.RenderStepped:Connect(function()
             -- Verificar se o jogador está no mesmo time
             if target.Team ~= LocalPlayer.Team then
                 -- Mirar na cabeça do jogador (Head)
-                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.Head.Position)
+                camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.Head.Position)
             end
         end
     end
@@ -73,8 +75,8 @@ RunService.RenderStepped:Connect(function()
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
             if not ESP_OBJECTS[player] then createESP(player) end
             local head = player.Character.Head
-            local pos, visible = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
-            local size = (workspace.CurrentCamera:WorldToViewportPoint(head.Position + Vector3.new(2, 3, 0)) - workspace.CurrentCamera:WorldToViewportPoint(head.Position - Vector3.new(2, 3, 0))).Magnitude
+            local pos, visible = camera:WorldToViewportPoint(head.Position)
+            local size = (camera:WorldToViewportPoint(head.Position + Vector3.new(2, 3, 0)) - camera:WorldToViewportPoint(head.Position - Vector3.new(2, 3, 0))).Magnitude
             local box = ESP_OBJECTS[player]
             box.Size = Vector2.new(size, size * 1.5)
             box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
@@ -104,6 +106,17 @@ RunService.RenderStepped:Connect(function()
         snowCircle.Visible = true
     elseif snowCircle then
         snowCircle.Visible = false
+    end
+end)
+
+-- Função principal do NoClip
+game:GetService("RunService").Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide == true then
+                part.CanCollide = false
+            end
+        end
     end
 end)
 
@@ -193,62 +206,36 @@ local function createMenu()
     addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
     addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
 
-    local colorButton = Instance.new("TextButton")
-    colorButton.Size = UDim2.new(0, 260, 0, 50)
-    colorButton.Position = UDim2.new(0, 20, 0, 240)
-    colorButton.Text = "COR ESP"
-    colorButton.BackgroundColor3 = ESP_COLOR
-    colorButton.TextColor3 = Color3.fromRGB(20, 20, 20)
-    colorButton.Font = Enum.Font.SciFi
-    colorButton.TextSize = 22
-    colorButton.AutoButtonColor = false
-    colorButton.Parent = panel
+    -- NoFly Button
+    noclipButton = Instance.new("TextButton")
+    noclipButton.Size = UDim2.new(0, 260, 0, 50)
+    noclipButton.Position = UDim2.new(0, 20, 0, 300)
+    noclipButton.Text = "☠️ NoFly (Atravessar)"
+    noclipButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    noclipButton.TextColor3 = Color3.new(1, 1, 1)
+    noclipButton.Font = Enum.Font.GothamBlack
+    noclipButton.TextSize = 18
+    noclipButton.Parent = panel
 
-    local cbStroke = Instance.new("UIStroke", colorButton)
-    cbStroke.Color = Color3.fromRGB(255, 255, 255)
-    cbStroke.Thickness = 1.5
-
-    Instance.new("UICorner", colorButton).CornerRadius = UDim.new(0, 10)
-
-    colorButton.MouseButton1Click:Connect(function()
-        espColorIndex = (espColorIndex % #colorOptions) + 1
-        ESP_COLOR = colorOptions[espColorIndex]
-        colorButton.BackgroundColor3 = ESP_COLOR
+    noclipButton.MouseButton1Click:Connect(function()
+        noclip = not noclip
+        noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
     end)
 
     -- Slider para o FOV
     local fovSlider = Instance.new("TextButton")
     fovSlider.Size = UDim2.new(0, 260, 0, 50)
-    fovSlider.Position = UDim2.new(0, 20, 0, 300)
-    fovSlider.Text = "FOV: " .. FOV_RADIUS
-    fovSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    fovSlider.TextColor3 = Color3.fromRGB(0, 255, 255)
-    fovSlider.Font = Enum.Font.SciFi
-    fovSlider.TextSize = 22
-    fovSlider.AutoButtonColor = false
+    fovSlider.Position = UDim2.new(0, 20, 0, 370)
+    fovSlider.Text = "Ajustar FOV"
+    fovSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovSlider.Font = Enum.Font.GothamBlack
+    fovSlider.TextSize = 18
     fovSlider.Parent = panel
 
-    Instance.new("UICorner", fovSlider).CornerRadius = UDim.new(0, 10)
-
     fovSlider.MouseButton1Click:Connect(function()
-        FOV_RADIUS = FOV_RADIUS == 80 and 120 or 80  -- Alternar o tamanho do FOV
-        fovSlider.Text = "FOV: " .. FOV_RADIUS
-    end)
-
-    -- Botões de abrir/fechar o painel
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 260, 0, 50)
-    toggleButton.Position = UDim2.new(0, 20, 0, 360)
-    toggleButton.Text = "Abrir/Fechar Menu"
-    toggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    toggleButton.TextColor3 = Color3.fromRGB(0, 255, 255)
-    toggleButton.Font = Enum.Font.SciFi
-    toggleButton.TextSize = 22
-    toggleButton.AutoButtonColor = false
-    toggleButton.Parent = panel
-
-    toggleButton.MouseButton1Click:Connect(function()
-        screenGui.Enabled = not screenGui.Enabled
+        -- Ajustar FOV (esse código depende de um slider, mas é um ponto de partida)
+        FOV_RADIUS = FOV_RADIUS + 10
     end)
 end
 
