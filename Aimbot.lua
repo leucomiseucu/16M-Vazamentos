@@ -1,243 +1,215 @@
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local UserInputService = game:GetService("UserInputService")
 
--- CONFIGURAÇÃO
-local ESP_ENABLED = true
-local AIMBOT_ENABLED = true
-local FOV_RADIUS = 65
-local AIM_RADIUS = 350
-local SILENT_FOV = 78
-local TOGGLE_KEY = Enum.KeyCode.P
-local SMOOTH_AIM = true
-local ESP_COLOR = Color3.fromRGB(0, 255, 0)
-local SNOW_FOV = true
+repeat wait() until LocalPlayer:FindFirstChild("PlayerGui")
 
-local guiVisible = true
-local isAiming = false
-local killColor = Color3.fromRGB(255, 0, 0)
+-- Variáveis globais
+local ESP_ENABLED = false
+local AIMBOT_ENABLED = false
+local SNOW_FOV = false
+local ESP_COLOR = Color3.fromRGB(0, 255, 255)
+local ESP_OBJECTS = {}
 
-local espColorIndex = 1
-local colorOptions = {
-    Color3.fromRGB(0, 255, 0),
-    Color3.fromRGB(255, 0, 0),
-    Color3.fromRGB(0, 0, 255),
-    Color3.fromRGB(255, 255, 0),
-    Color3.fromRGB(255, 0, 255)
-}
-
-local function createMenu()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "Menu"
-    screenGui.Parent = game.Players.LocalPlayer.PlayerGui
-    screenGui.ResetOnSpawn = false
-
-    local panel = Instance.new("Frame")
-    panel.Size = UDim2.new(0, 250, 0, 360)
-    panel.Position = UDim2.new(0, 10, 0, 10)
-    panel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    panel.BackgroundTransparency = 0.5
-    panel.Parent = screenGui
-
-    local dragging = false
-    local dragInput
-    local dragStart
-    local startPos
-
-    panel.InputBegan:Connect(function(input, gameProcessed)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = panel.Position
-        end
-    end)
-
-    panel.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    panel.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-
-    local espButton = Instance.new("TextButton")
-    espButton.Size = UDim2.new(0, 200, 0, 50)
-    espButton.Position = UDim2.new(0, 10, 0, 10)
-    espButton.Text = "ESP: ON"
-    espButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    espButton.Parent = panel
-
-    espButton.MouseButton1Click:Connect(function()
-        ESP_ENABLED = not ESP_ENABLED
-        espButton.Text = ESP_ENABLED and "ESP: ON" or "ESP: OFF"
-        espButton.BackgroundColor3 = ESP_ENABLED and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end)
-
-    local aimbotButton = Instance.new("TextButton")
-    aimbotButton.Size = UDim2.new(0, 200, 0, 50)
-    aimbotButton.Position = UDim2.new(0, 10, 0, 70)
-    aimbotButton.Text = "AIMBOT: ON"
-    aimbotButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    aimbotButton.Parent = panel
-
-    aimbotButton.MouseButton1Click:Connect(function()
-        AIMBOT_ENABLED = not AIMBOT_ENABLED
-        aimbotButton.Text = AIMBOT_ENABLED and "AIMBOT: ON" or "AIMBOT: OFF"
-        aimbotButton.BackgroundColor3 = AIMBOT_ENABLED and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end)
-
-    local snowFovButton = Instance.new("TextButton")
-    snowFovButton.Size = UDim2.new(0, 200, 0, 50)
-    snowFovButton.Position = UDim2.new(0, 10, 0, 130)
-    snowFovButton.Text = "SNOW FOV: ON"
-    snowFovButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    snowFovButton.Parent = panel
-
-    snowFovButton.MouseButton1Click:Connect(function()
-        SNOW_FOV = not SNOW_FOV
-        snowFovButton.Text = SNOW_FOV and "SNOW FOV: ON" or "SNOW FOV: OFF"
-        snowFovButton.BackgroundColor3 = SNOW_FOV and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end)
-
-    local colorButton = Instance.new("TextButton")
-    colorButton.Size = UDim2.new(0, 200, 0, 50)
-    colorButton.Position = UDim2.new(0, 10, 0, 190)
-    colorButton.Text = "COR ESP"
-    colorButton.BackgroundColor3 = ESP_COLOR
-    colorButton.TextColor3 = Color3.new(0, 0, 0)
-    colorButton.Parent = panel
-
-    colorButton.MouseButton1Click:Connect(function()
-        espColorIndex = (espColorIndex % #colorOptions) + 1
-        ESP_COLOR = colorOptions[espColorIndex]
-        colorButton.BackgroundColor3 = ESP_COLOR
-    end)
+-- Funções auxiliares
+local function getClosestPlayer()
+	local closest, dist = nil, math.huge
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+			local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character.Head.Position)
+			if onScreen then
+				local mouse = LocalPlayer:GetMouse()
+				local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+				if distance < dist then
+					closest = player
+					dist = distance
+				end
+			end
+		end
+	end
+	return closest
 end
 
-createMenu()
+-- Aimbot
+RunService.RenderStepped:Connect(function()
+	if AIMBOT_ENABLED then
+		local target = getClosestPlayer()
+		if target and target.Character and target.Character:FindFirstChild("Head") then
+			-- Mirar na cabeça do jogador (Head)
+			workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.Head.Position)
+		end
+	end
+end)
 
+-- ESP
 local function createESP(player)
-    if player == LocalPlayer then return end
-
-    local box = Drawing.new("Square")
-    box.Thickness = 1
-    box.Transparency = 1
-    box.Visible = false
-
-    local text = Drawing.new("Text")
-    text.Size = 16
-    text.Center = true
-    text.Outline = true
-    text.Color = Color3.new(1, 1, 1)
-    text.Visible = false
-
-    local function update()
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = player.Character.HumanoidRootPart
-            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-            if onScreen and ESP_ENABLED then
-                local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
-                box.Size = Vector2.new(60 / (distance / 50), 100 / (distance / 50))
-                box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                box.Color = ESP_COLOR
-                box.Visible = true
-
-                text.Position = Vector2.new(pos.X, pos.Y - box.Size.Y / 2 - 15)
-                text.Text = string.format("%s | %.0f HP | %.0f m", player.Name, player.Character.Humanoid.Health, distance)
-                text.Visible = true
-            else
-                box.Visible = false
-                text.Visible = false
-            end
-        else
-            box.Visible = false
-            text.Visible = false
-        end
-    end
-
-    RunService.RenderStepped:Connect(update)
+	local box = Drawing.new("Square")
+	box.Color = ESP_COLOR
+	box.Thickness = 2
+	box.Transparency = 1
+	box.Filled = false
+	ESP_OBJECTS[player] = box
 end
 
-for _, player in pairs(Players:GetPlayers()) do
-    createESP(player)
-end
-Players.PlayerAdded:Connect(createESP)
-
-local function aimbot()
-    local closestPlayer = nil
-    local closestDistance = FOV_RADIUS
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-
-        local character = player.Character
-        if character and character:FindFirstChild("Head") then
-            local head = character.Head
-            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-
-            if onScreen then
-                local distance = (Camera.CFrame.Position - head.Position).Magnitude
-                if distance < closestDistance then
-                    closestPlayer = player
-                    closestDistance = distance
-                end
-            end
-        end
-    end
-
-    if closestPlayer then
-        local targetHead = closestPlayer.Character and closestPlayer.Character.Head
-        if targetHead then
-            local targetPos = targetHead.Position
-            local direction = (targetPos - Camera.CFrame.Position).unit
-
-            if SNOW_FOV then
-                local ray = Ray.new(Camera.CFrame.Position, direction * AIM_RADIUS)
-                local hitPart = workspace:FindPartOnRay(ray, LocalPlayer.Character)
-
-                if hitPart and hitPart.Parent == closestPlayer.Character then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
-                end
-            end
-        end
-    end
-end
-
-local function silentAim()
-    local closestPlayer = nil
-    local shortestDistance = SILENT_FOV
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") then
-            local headPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
-            if onScreen then
-                local distance = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
-                if distance <= SILENT_FOV then
-                    closestPlayer = player
-                    shortestDistance = distance
-                end
-            end
-        end
-    end
-
-    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Humanoid") then
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
-        closestPlayer.Character.Humanoid.Health = 0
-    end
+local function removeESP(player)
+	if ESP_OBJECTS[player] then
+		ESP_OBJECTS[player]:Remove()
+		ESP_OBJECTS[player] = nil
+	end
 end
 
 RunService.RenderStepped:Connect(function()
-    if AIMBOT_ENABLED then
-        aimbot()
-        silentAim()
-    end
+	if not ESP_ENABLED then
+		for _, box in pairs(ESP_OBJECTS) do box.Visible = false end
+		return
+	end
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+			if not ESP_OBJECTS[player] then createESP(player) end
+			local head = player.Character.Head
+			local pos, visible = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
+			local size = (workspace.CurrentCamera:WorldToViewportPoint(head.Position + Vector3.new(2, 3, 0)) - workspace.CurrentCamera:WorldToViewportPoint(head.Position - Vector3.new(2, 3, 0))).Magnitude
+			local box = ESP_OBJECTS[player]
+			box.Size = Vector2.new(size, size * 1.5)
+			box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
+			box.Color = ESP_COLOR
+			box.Visible = visible
+		else
+			removeESP(player)
+		end
+	end
 end)
+
+-- Snow FOV
+local snowCircle
+RunService.RenderStepped:Connect(function()
+	if SNOW_FOV then
+		if not snowCircle then
+			snowCircle = Drawing.new("Circle")
+			snowCircle.Color = Color3.fromRGB(200, 200, 255)
+			snowCircle.Thickness = 1.5
+			snowCircle.Radius = 80
+			snowCircle.Transparency = 0.6
+			snowCircle.Filled = false
+		end
+		local mouse = LocalPlayer:GetMouse()
+		snowCircle.Position = Vector2.new(mouse.X, mouse.Y)
+		snowCircle.Visible = true
+	elseif snowCircle then
+		snowCircle.Visible = false
+	end
+end)
+
+-- Criação do menu futurista
+local colorOptions = {
+	Color3.fromRGB(0, 255, 255),
+	Color3.fromRGB(255, 0, 0),
+	Color3.fromRGB(0, 255, 100),
+	Color3.fromRGB(255, 255, 0),
+	Color3.fromRGB(255, 0, 255)
+}
+local espColorIndex = 1
+
+local function createMenu()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "FuturisticMenu"
+	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	screenGui.ResetOnSpawn = false
+
+	local panel = Instance.new("Frame")
+	panel.Size = UDim2.new(0, 300, 0, 420)
+	panel.Position = UDim2.new(0, 20, 0, 20)
+	panel.BackgroundTransparency = 0.25
+	panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	panel.BorderSizePixel = 0
+	panel.Parent = screenGui
+
+	Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
+	Instance.new("UIStroke", panel).Color = Color3.fromRGB(0, 255, 255)
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0, 40)
+	title.Position = UDim2.new(0, 0, 0, 0)
+	title.BackgroundTransparency = 1
+	title.Text = "☣ CEIFADOR GUI ☣"
+	title.TextColor3 = Color3.fromRGB(0, 255, 255)
+	title.TextStrokeTransparency = 0.6
+	title.Font = Enum.Font.SciFi
+	title.TextSize = 28
+	title.Parent = panel
+
+	local dragging, dragStart, startPos
+	panel.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = panel.Position
+		end
+	end)
+	panel.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+	panel.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+	end)
+
+	local function addButton(name, yPos, refVar, onClick)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0, 260, 0, 50)
+		btn.Position = UDim2.new(0, 20, 0, yPos)
+		btn.Text = name .. ": OFF"
+		btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+		btn.TextColor3 = Color3.fromRGB(0, 255, 255)
+		btn.Font = Enum.Font.SciFi
+		btn.TextSize = 22
+		btn.AutoButtonColor = false
+		btn.Parent = panel
+
+		local stroke = Instance.new("UIStroke", btn)
+		stroke.Color = Color3.fromRGB(255, 50, 50)
+		stroke.Thickness = 1.5
+
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+		btn.MouseButton1Click:Connect(function()
+			refVar = not refVar
+			btn.Text = name .. ": " .. (refVar and "ON" or "OFF")
+			stroke.Color = refVar and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50)
+			onClick(refVar)
+		end)
+	end
+
+	addButton("ESP", 60, ESP_ENABLED, function(v) ESP_ENABLED = v end)
+	addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
+	addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
+
+	local colorButton = Instance.new("TextButton")
+	colorButton.Size = UDim2.new(0, 260, 0, 50)
+	colorButton.Position = UDim2.new(0, 20, 0, 240)
+	colorButton.Text = "COR ESP"
+	colorButton.BackgroundColor3 = ESP_COLOR
+	colorButton.TextColor3 = Color3.fromRGB(20, 20, 20)
+	colorButton.Font = Enum.Font.SciFi
+	colorButton.TextSize = 22
+	colorButton.AutoButtonColor = false
+	colorButton.Parent = panel
+
+	local cbStroke = Instance.new("UIStroke", colorButton)
+	cbStroke.Color = Color3.fromRGB(255, 255, 255)
+	cbStroke.Thickness = 1.5
+
+	Instance.new("UICorner", colorButton).CornerRadius = UDim.new(0, 10)
+
+	colorButton.MouseButton1Click:Connect(function()
+		espColorIndex = (espColorIndex % #colorOptions) + 1
+		ESP_COLOR = colorOptions[espColorIndex]
+		colorButton.BackgroundColor3 = ESP_COLOR
+	end)
+end
+
+createMenu()
