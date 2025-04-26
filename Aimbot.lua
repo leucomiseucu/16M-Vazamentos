@@ -1,6 +1,7 @@
 -- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
@@ -14,8 +15,10 @@ local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
 local FOV_RADIUS = 80
 local noclip = false
-local noclipButton
+local aiming = false
 local KEY_CORRETA = "9M" -- SUA KEY
+
+local menuGui
 
 -- Funções auxiliares
 local function getClosestPlayer()
@@ -36,9 +39,23 @@ local function getClosestPlayer()
     return closest
 end
 
+-- Controle de tiro
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        aiming = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        aiming = false
+    end
+end)
+
 -- Aimbot
 RunService.RenderStepped:Connect(function()
-    if AIMBOT_ENABLED then
+    if AIMBOT_ENABLED and aiming then
         local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             if target.Team ~= LocalPlayer.Team then
@@ -122,11 +139,11 @@ end)
 
 -- Menu Futurista
 local function createMenu()
-    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    screenGui.Name = "FuturisticMenu"
-    screenGui.ResetOnSpawn = false
+    menuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    menuGui.Name = "FuturisticMenu"
+    menuGui.ResetOnSpawn = false
 
-    local panel = Instance.new("Frame", screenGui)
+    local panel = Instance.new("Frame", menuGui)
     panel.Size = UDim2.new(0, 300, 0, 420)
     panel.Position = UDim2.new(0, 20, 0, 20)
     panel.BackgroundTransparency = 0.25
@@ -145,24 +162,6 @@ local function createMenu()
     title.TextStrokeTransparency = 0.6
     title.Font = Enum.Font.SciFi
     title.TextSize = 28
-
-    local dragging, dragStart, startPos
-    panel.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = panel.Position
-        end
-    end)
-    panel.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    panel.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
 
     local function addButton(name, yPos, refVar, onClick)
         local btn = Instance.new("TextButton", panel)
@@ -193,7 +192,7 @@ local function createMenu()
     addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
     addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
 
-    noclipButton = Instance.new("TextButton", panel)
+    local noclipButton = Instance.new("TextButton", panel)
     noclipButton.Size = UDim2.new(0, 260, 0, 50)
     noclipButton.Position = UDim2.new(0, 20, 0, 300)
     noclipButton.Text = "☠️ NoFly (Atravessar)"
@@ -206,20 +205,17 @@ local function createMenu()
         noclip = not noclip
         noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
     end)
-
-    local fovSlider = Instance.new("TextButton", panel)
-    fovSlider.Size = UDim2.new(0, 260, 0, 50)
-    fovSlider.Position = UDim2.new(0, 20, 0, 370)
-    fovSlider.Text = "Ajustar FOV"
-    fovSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
-    fovSlider.Font = Enum.Font.GothamBlack
-    fovSlider.TextSize = 18
-
-    fovSlider.MouseButton1Click:Connect(function()
-        FOV_RADIUS = FOV_RADIUS + 10
-    end)
 end
+
+-- Atalhos de teclado para abrir e fechar menu
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.N then
+        if not menuGui then createMenu() else menuGui.Enabled = true end
+    elseif input.KeyCode == Enum.KeyCode.M then
+        if menuGui then menuGui.Enabled = false end
+    end
+end)
 
 -- Painel de Key
 local function createKeySystem()
