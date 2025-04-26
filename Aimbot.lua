@@ -1,3 +1,4 @@
+-- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -11,9 +12,10 @@ local AIMBOT_ENABLED = false
 local SNOW_FOV = false
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
-local FOV_RADIUS = 80  -- Tamanho inicial do FOV
+local FOV_RADIUS = 80
 local noclip = false
-local noclipButton -- Para o botão do NoFly
+local noclipButton
+local KEY_CORRETA = "9M" -- SUA KEY
 
 -- Funções auxiliares
 local function getClosestPlayer()
@@ -24,7 +26,7 @@ local function getClosestPlayer()
             if onScreen then
                 local mouse = LocalPlayer:GetMouse()
                 local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
-                if distance < dist and distance <= FOV_RADIUS then  -- Verificar se está dentro do FOV
+                if distance < dist and distance <= FOV_RADIUS then
                     closest = player
                     dist = distance
                 end
@@ -39,9 +41,7 @@ RunService.RenderStepped:Connect(function()
     if AIMBOT_ENABLED then
         local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("Head") then
-            -- Verificar se o jogador está no mesmo time
             if target.Team ~= LocalPlayer.Team then
-                -- Mirar na cabeça do jogador (Head)
                 camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.Head.Position)
             end
         end
@@ -109,8 +109,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Função principal do NoClip
-game:GetService("RunService").Stepped:Connect(function()
+-- NoClip
+RunService.Stepped:Connect(function()
     if noclip and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide == true then
@@ -120,34 +120,23 @@ game:GetService("RunService").Stepped:Connect(function()
     end
 end)
 
--- Criação do menu futurista
-local colorOptions = {
-    Color3.fromRGB(0, 255, 255),
-    Color3.fromRGB(255, 0, 0),
-    Color3.fromRGB(0, 255, 100),
-    Color3.fromRGB(255, 255, 0),
-    Color3.fromRGB(255, 0, 255)
-}
-local espColorIndex = 1
-
+-- Menu Futurista
 local function createMenu()
-    local screenGui = Instance.new("ScreenGui")
+    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
     screenGui.Name = "FuturisticMenu"
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     screenGui.ResetOnSpawn = false
 
-    local panel = Instance.new("Frame")
+    local panel = Instance.new("Frame", screenGui)
     panel.Size = UDim2.new(0, 300, 0, 420)
     panel.Position = UDim2.new(0, 20, 0, 20)
     panel.BackgroundTransparency = 0.25
     panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     panel.BorderSizePixel = 0
-    panel.Parent = screenGui
 
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
     Instance.new("UIStroke", panel).Color = Color3.fromRGB(0, 255, 255)
 
-    local title = Instance.new("TextLabel")
+    local title = Instance.new("TextLabel", panel)
     title.Size = UDim2.new(1, 0, 0, 40)
     title.Position = UDim2.new(0, 0, 0, 0)
     title.BackgroundTransparency = 1
@@ -156,7 +145,6 @@ local function createMenu()
     title.TextStrokeTransparency = 0.6
     title.Font = Enum.Font.SciFi
     title.TextSize = 28
-    title.Parent = panel
 
     local dragging, dragStart, startPos
     panel.InputBegan:Connect(function(input)
@@ -177,7 +165,7 @@ local function createMenu()
     end)
 
     local function addButton(name, yPos, refVar, onClick)
-        local btn = Instance.new("TextButton")
+        local btn = Instance.new("TextButton", panel)
         btn.Size = UDim2.new(0, 260, 0, 50)
         btn.Position = UDim2.new(0, 20, 0, yPos)
         btn.Text = name .. ": OFF"
@@ -186,7 +174,6 @@ local function createMenu()
         btn.Font = Enum.Font.SciFi
         btn.TextSize = 22
         btn.AutoButtonColor = false
-        btn.Parent = panel
 
         local stroke = Instance.new("UIStroke", btn)
         stroke.Color = Color3.fromRGB(255, 50, 50)
@@ -206,8 +193,7 @@ local function createMenu()
     addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
     addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
 
-    -- NoFly Button
-    noclipButton = Instance.new("TextButton")
+    noclipButton = Instance.new("TextButton", panel)
     noclipButton.Size = UDim2.new(0, 260, 0, 50)
     noclipButton.Position = UDim2.new(0, 20, 0, 300)
     noclipButton.Text = "☠️ NoFly (Atravessar)"
@@ -215,15 +201,13 @@ local function createMenu()
     noclipButton.TextColor3 = Color3.new(1, 1, 1)
     noclipButton.Font = Enum.Font.GothamBlack
     noclipButton.TextSize = 18
-    noclipButton.Parent = panel
 
     noclipButton.MouseButton1Click:Connect(function()
         noclip = not noclip
         noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
     end)
 
-    -- Slider para o FOV
-    local fovSlider = Instance.new("TextButton")
+    local fovSlider = Instance.new("TextButton", panel)
     fovSlider.Size = UDim2.new(0, 260, 0, 50)
     fovSlider.Position = UDim2.new(0, 20, 0, 370)
     fovSlider.Text = "Ajustar FOV"
@@ -231,12 +215,66 @@ local function createMenu()
     fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
     fovSlider.Font = Enum.Font.GothamBlack
     fovSlider.TextSize = 18
-    fovSlider.Parent = panel
 
     fovSlider.MouseButton1Click:Connect(function()
-        -- Ajustar FOV (esse código depende de um slider, mas é um ponto de partida)
         FOV_RADIUS = FOV_RADIUS + 10
     end)
 end
 
-createMenu()
+-- Painel de Key
+local function createKeySystem()
+    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    screenGui.Name = "KeySystemMenu"
+    screenGui.ResetOnSpawn = false
+
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Size = UDim2.new(0, 400, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+    Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(150, 0, 255)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Text = "👾 Ceifador Menu v1 - 9M Vazamentos👾"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 20
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+
+    local keyInput = Instance.new("TextBox", mainFrame)
+    keyInput.Size = UDim2.new(0, 300, 0, 40)
+    keyInput.Position = UDim2.new(0.5, -150, 0, 60)
+    keyInput.PlaceholderText = "Coloque a key..."
+    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.Font = Enum.Font.Gotham
+    keyInput.TextSize = 18
+
+    Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0, 8)
+
+    local checkButton = Instance.new("TextButton", mainFrame)
+    checkButton.Size = UDim2.new(0, 300, 0, 40)
+    checkButton.Position = UDim2.new(0.5, -150, 0, 120)
+    checkButton.Text = "🔒 Checkar Key"
+    checkButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    checkButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+    checkButton.Font = Enum.Font.GothamBold
+    checkButton.TextSize = 18
+
+    Instance.new("UICorner", checkButton).CornerRadius = UDim.new(0, 8)
+
+    checkButton.MouseButton1Click:Connect(function()
+        if keyInput.Text == KEY_CORRETA then
+            screenGui:Destroy()
+            createMenu()
+        else
+            keyInput.Text = ""
+            keyInput.PlaceholderText = "❌ Key Incorreta!"
+        end
+    end)
+end
+
+-- Começar chamando o Key System
+createKeySystem()
