@@ -15,10 +15,10 @@ local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
 local FOV_RADIUS = 80
 local noclip = false
-local aiming = false
-local KEY_CORRETA = "9M" -- SUA KEY
-
+local menuOpen = false
 local menuGui
+local KEY_CORRETA = "9M" -- SUA KEY
+local shooting = false
 
 -- Funções auxiliares
 local function getClosestPlayer()
@@ -39,23 +39,9 @@ local function getClosestPlayer()
     return closest
 end
 
--- Controle de tiro
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        aiming = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        aiming = false
-    end
-end)
-
 -- Aimbot
 RunService.RenderStepped:Connect(function()
-    if AIMBOT_ENABLED and aiming then
+    if AIMBOT_ENABLED and shooting then
         local target = getClosestPlayer()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             if target.Team ~= LocalPlayer.Team then
@@ -163,6 +149,24 @@ local function createMenu()
     title.Font = Enum.Font.SciFi
     title.TextSize = 28
 
+    local dragging, dragStart, startPos
+    panel.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = panel.Position
+        end
+    end)
+    panel.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    panel.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
     local function addButton(name, yPos, refVar, onClick)
         local btn = Instance.new("TextButton", panel)
         btn.Size = UDim2.new(0, 260, 0, 50)
@@ -205,17 +209,22 @@ local function createMenu()
         noclip = not noclip
         noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
     end)
-end
 
--- Atalhos de teclado para abrir e fechar menu
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.N then
-        if not menuGui then createMenu() else menuGui.Enabled = true end
-    elseif input.KeyCode == Enum.KeyCode.M then
-        if menuGui then menuGui.Enabled = false end
-    end
-end)
+    local fovSlider = Instance.new("TextButton", panel)
+    fovSlider.Size = UDim2.new(0, 260, 0, 50)
+    fovSlider.Position = UDim2.new(0, 20, 0, 370)
+    fovSlider.Text = "Ajustar FOV"
+    fovSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovSlider.Font = Enum.Font.GothamBlack
+    fovSlider.TextSize = 18
+
+    fovSlider.MouseButton1Click:Connect(function()
+        FOV_RADIUS = FOV_RADIUS + 10
+    end)
+
+    menuGui.Enabled = false
+end
 
 -- Painel de Key
 local function createKeySystem()
@@ -274,3 +283,24 @@ end
 
 -- Começar chamando o Key System
 createKeySystem()
+
+-- Input para abrir/fechar o menu
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.N then
+            if menuGui then menuGui.Enabled = true end
+        elseif input.KeyCode == Enum.KeyCode.H then
+            if menuGui then menuGui.Enabled = false end
+        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+            shooting = true
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            shooting = false
+        end
+    end
+end)
