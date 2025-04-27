@@ -1,1 +1,313 @@
---%20Servi%C3%A7os%0Alocal%20Players%20%3D%20game%3AGetService(%22Players%22)%0Alocal%20RunService%20%3D%20game%3AGetService(%22RunService%22)%0Alocal%20UserInputService%20%3D%20game%3AGetService(%22UserInputService%22)%0Alocal%20LocalPlayer%20%3D%20Players.LocalPlayer%0Alocal%20camera%20%3D%20workspace.CurrentCamera%0A%0Arepeat%20wait()%20until%20LocalPlayer%3AFindFirstChild(%22PlayerGui%22)%0A%0A--%20Vari%C3%A1veis%20globais%0Alocal%20ESP_ENABLED%20%3D%20false%0Alocal%20AIMBOT_ENABLED%20%3D%20false%0Alocal%20SNOW_FOV%20%3D%20false%0Alocal%20ESP_COLOR%20%3D%20Color3.fromRGB(0%2C%20255%2C%20255)%0Alocal%20ESP_OBJECTS%20%3D%20%7B%7D%0Alocal%20FOV_RADIUS%20%3D%2080%0Alocal%20noclip%20%3D%20false%0Alocal%20menuOpen%20%3D%20false%0Alocal%20menuGui%0Alocal%20KEY_CORRETA%20%3D%20%229M%22%0Alocal%20shooting%20%3D%20false%0A%0A--%20Fun%C3%A7%C3%B5es%20auxiliares%0Alocal%20function%20getClosestPlayer()%0A%20%20%20%20local%20closest%2C%20dist%20%3D%20nil%2C%20math.huge%0A%20%20%20%20for%20_%2C%20player%20in%20pairs(Players%3AGetPlayers())%20do%0A%20%20%20%20%20%20%20%20if%20player%20~%3D%20LocalPlayer%20and%20player.Character%20and%20player.Character%3AFindFirstChild(%22Head%22)%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20local%20pos%2C%20onScreen%20%3D%20camera%3AWorldToViewportPoint(player.Character.Head.Position)%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20onScreen%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20mouse%20%3D%20LocalPlayer%3AGetMouse()%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20distance%20%3D%20(Vector2.new(mouse.X%2C%20mouse.Y)%20-%20Vector2.new(pos.X%2C%20pos.Y)).Magnitude%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20distance%20%3C%20dist%20and%20distance%20%3C%3D%20FOV_RADIUS%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20closest%20%3D%20player%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20dist%20%3D%20distance%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0A%20%20%20%20return%20closest%0Aend%0A%0A--%20Aimbot%0ARunService.RenderStepped%3AConnect(function()%0A%20%20%20%20if%20AIMBOT_ENABLED%20and%20shooting%20then%0A%20%20%20%20%20%20%20%20local%20target%20%3D%20getClosestPlayer()%0A%20%20%20%20%20%20%20%20if%20target%20and%20target.Character%20and%20target.Character%3AFindFirstChild(%22Head%22)%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20target.Team%20~%3D%20LocalPlayer.Team%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20camera.CFrame%20%3D%20CFrame.new(camera.CFrame.Position%2C%20target.Character.Head.Position)%0A%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0Aend)%0A%0A--%20ESP%0Alocal%20function%20createESP(player)%0A%20%20%20%20local%20box%20%3D%20Drawing.new(%22Square%22)%0A%20%20%20%20box.Color%20%3D%20ESP_COLOR%0A%20%20%20%20box.Thickness%20%3D%202%0A%20%20%20%20box.Transparency%20%3D%201%0A%20%20%20%20box.Filled%20%3D%20false%0A%20%20%20%20ESP_OBJECTS%5Bplayer%5D%20%3D%20box%0Aend%0A%0Alocal%20function%20removeESP(player)%0A%20%20%20%20if%20ESP_OBJECTS%5Bplayer%5D%20then%0A%20%20%20%20%20%20%20%20ESP_OBJECTS%5Bplayer%5D%3ARemove()%0A%20%20%20%20%20%20%20%20ESP_OBJECTS%5Bplayer%5D%20%3D%20nil%0A%20%20%20%20end%0Aend%0A%0ARunService.RenderStepped%3AConnect(function()%0A%20%20%20%20if%20not%20ESP_ENABLED%20then%0A%20%20%20%20%20%20%20%20for%20_%2C%20box%20in%20pairs(ESP_OBJECTS)%20do%20box.Visible%20%3D%20false%20end%0A%20%20%20%20%20%20%20%20return%0A%20%20%20%20end%0A%0A%20%20%20%20for%20_%2C%20player%20in%20pairs(Players%3AGetPlayers())%20do%0A%20%20%20%20%20%20%20%20if%20player%20~%3D%20LocalPlayer%20and%20player.Character%20and%20player.Character%3AFindFirstChild(%22Head%22)%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20local%20humanoid%20%3D%20player.Character%3AFindFirstChildOfClass(%22Humanoid%22)%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20humanoid%20and%20humanoid.Health%20%3E%200%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20not%20ESP_OBJECTS%5Bplayer%5D%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20createESP(player)%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20head%20%3D%20player.Character.Head%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20pos%2C%20visible%20%3D%20camera%3AWorldToViewportPoint(head.Position)%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20size%20%3D%20(camera%3AWorldToViewportPoint(head.Position%20%2B%20Vector3.new(2%2C%203%2C%200))%20-%20camera%3AWorldToViewportPoint(head.Position%20-%20Vector3.new(2%2C%203%2C%200))).Magnitude%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20local%20box%20%3D%20ESP_OBJECTS%5Bplayer%5D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20box.Size%20%3D%20Vector2.new(size%2C%20size%20*%201.5)%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20box.Position%20%3D%20Vector2.new(pos.X%20-%20box.Size.X%2F2%2C%20pos.Y%20-%20box.Size.Y%2F2)%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20box.Color%20%3D%20ESP_COLOR%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20box.Visible%20%3D%20visible%0A%20%20%20%20%20%20%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20removeESP(player)%0A%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20%20%20%20%20removeESP(player)%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0Aend)%0A%0A--%20Snow%20FOV%0Alocal%20snowCircle%0ARunService.RenderStepped%3AConnect(function()%0A%20%20%20%20if%20SNOW_FOV%20then%0A%20%20%20%20%20%20%20%20if%20not%20snowCircle%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle%20%3D%20Drawing.new(%22Circle%22)%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle.Color%20%3D%20Color3.fromRGB(200%2C%20200%2C%20255)%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle.Thickness%20%3D%201.5%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle.Radius%20%3D%20FOV_RADIUS%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle.Transparency%20%3D%200.6%0A%20%20%20%20%20%20%20%20%20%20%20%20snowCircle.Filled%20%3D%20false%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20local%20mouse%20%3D%20LocalPlayer%3AGetMouse()%0A%20%20%20%20%20%20%20%20snowCircle.Position%20%3D%20Vector2.new(mouse.X%2C%20mouse.Y)%0A%20%20%20%20%20%20%20%20snowCircle.Radius%20%3D%20FOV_RADIUS%0A%20%20%20%20%20%20%20%20snowCircle.Visible%20%3D%20true%0A%20%20%20%20elseif%20snowCircle%20then%0A%20%20%20%20%20%20%20%20snowCircle.Visible%20%3D%20false%0A%20%20%20%20end%0Aend)%0A%0A--%20NoClip%0ARunService.Stepped%3AConnect(function()%0A%20%20%20%20if%20noclip%20and%20LocalPlayer.Character%20then%0A%20%20%20%20%20%20%20%20for%20_%2C%20part%20in%20pairs(LocalPlayer.Character%3AGetDescendants())%20do%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20part%3AIsA(%22BasePart%22)%20and%20part.CanCollide%20%3D%3D%20true%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20part.CanCollide%20%3D%20false%0A%20%20%20%20%20%20%20%20%20%20%20%20end%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0Aend)%0A%0A--%20Menu%20Futurista%0Alocal%20function%20createMenu()%0A%20%20%20%20menuGui%20%3D%20Instance.new(%22ScreenGui%22%2C%20LocalPlayer.PlayerGui)%0A%20%20%20%20menuGui.Name%20%3D%20%22FuturisticMenu%22%0A%20%20%20%20menuGui.ResetOnSpawn%20%3D%20false%0A%0A%20%20%20%20local%20panel%20%3D%20Instance.new(%22Frame%22%2C%20menuGui)%0A%20%20%20%20panel.Size%20%3D%20UDim2.new(0%2C%20300%2C%200%2C%20420)%0A%20%20%20%20panel.Position%20%3D%20UDim2.new(0%2C%2020%2C%200%2C%2020)%0A%20%20%20%20panel.BackgroundTransparency%20%3D%200.25%0A%20%20%20%20panel.BackgroundColor3%20%3D%20Color3.fromRGB(20%2C%2020%2C%2020)%0A%20%20%20%20panel.BorderSizePixel%20%3D%200%0A%0A%20%20%20%20Instance.new(%22UICorner%22%2C%20panel).CornerRadius%20%3D%20UDim.new(0%2C%2016)%0A%20%20%20%20Instance.new(%22UIStroke%22%2C%20panel).Color%20%3D%20Color3.fromRGB(0%2C%20255%2C%20255)%0A%0A%20%20%20%20local%20title%20%3D%20Instance.new(%22TextLabel%22%2C%20panel)%0A%20%20%20%20title.Size%20%3D%20UDim2.new(1%2C%200%2C%200%2C%2040)%0A%20%20%20%20title.Position%20%3D%20UDim2.new(0%2C%200%2C%200%2C%200)%0A%20%20%20%20title.BackgroundTransparency%20%3D%201%0A%20%20%20%20title.Text%20%3D%20%22%E2%98%A3%20CEIFADOR%20GUI%20%E2%98%A3%22%0A%20%20%20%20title.TextColor3%20%3D%20Color3.fromRGB(0%2C%20255%2C%20255)%0A%20%20%20%20title.TextStrokeTransparency%20%3D%200.6%0A%20%20%20%20title.Font%20%3D%20Enum.Font.SciFi%0A%20%20%20%20title.TextSize%20%3D%2028%0A%0A%20%20%20%20local%20dragging%2C%20dragStart%2C%20startPos%0A%20%20%20%20panel.InputBegan%3AConnect(function(input)%0A%20%20%20%20%20%20%20%20if%20input.UserInputType%20%3D%3D%20Enum.UserInputType.MouseButton1%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20dragging%20%3D%20true%0A%20%20%20%20%20%20%20%20%20%20%20%20dragStart%20%3D%20input.Position%0A%20%20%20%20%20%20%20%20%20%20%20%20startPos%20%3D%20panel.Position%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end)%0A%20%20%20%20panel.InputChanged%3AConnect(function(input)%0A%20%20%20%20%20%20%20%20if%20dragging%20and%20input.UserInputType%20%3D%3D%20Enum.UserInputType.MouseMovement%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20local%20delta%20%3D%20input.Position%20-%20dragStart%0A%20%20%20%20%20%20%20%20%20%20%20%20panel.Position%20%3D%20UDim2.new(startPos.X.Scale%2C%20startPos.X.Offset%20%2B%20delta.X%2C%20startPos.Y.Scale%2C%20startPos.Y.Offset%20%2B%20delta.Y)%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end)%0A%20%20%20%20panel.InputEnded%3AConnect(function(input)%0A%20%20%20%20%20%20%20%20if%20input.UserInputType%20%3D%3D%20Enum.UserInputType.MouseButton1%20then%20dragging%20%3D%20false%20end%0A%20%20%20%20end)%0A%0A%20%20%20%20local%20function%20addButton(name%2C%20yPos%2C%20refVar%2C%20onClick)%0A%20%20%20%20%20%20%20%20local%20btn%20%3D%20Instance.new(%22TextButton%22%2C%20panel)%0A%20%20%20%20%20%20%20%20btn.Size%20%3D%20UDim2.new(0%2C%20260%2C%200%2C%2050)%0A%20%20%20%20%20%20%20%20btn.Position%20%3D%20UDim2.new(0%2C%2020%2C%200%2C%20yPos)%0A%20%20%20%20%20%20%20%20btn.Text%20%3D%20name%20..%20%22%3A%20OFF%22%0A%20%20%20%20%20%20%20%20btn.BackgroundColor3%20%3D%20Color3.fromRGB(30%2C%2030%2C%2030)%0A%20%20%20%20%20%20%20%20btn.TextColor3%20%3D%20Color3.fromRGB(0%2C%20255%2C%20255)%0A%20%20%20%20%20%20%20%20btn.Font%20%3D%20Enum.Font.SciFi%0A%20%20%20%20%20%20%20%20btn.TextSize%20%3D%2022%0A%20%20%20%20%20%20%20%20btn.AutoButtonColor%20%3D%20false%0A%0A%20%20%20%20%20%20%20%20local%20stroke%20%3D%20Instance.new(%22UIStroke%22%2C%20btn)%0A%20%20%20%20%20%20%20%20stroke.Color%20%3D%20Color3.fromRGB(255%2C%2050%2C%2050)%0A%20%20%20%20%20%20%20%20stroke.Thickness%20%3D%201.5%0A%0A%20%20%20%20%20%20%20%20Instance.new(%22UICorner%22%2C%20btn).CornerRadius%20%3D%20UDim.new(0%2C%2010)%0A%0A%20%20%20%20%20%20%20%20btn.MouseButton1Click%3AConnect(function()%0A%20%20%20%20%20%20%20%20%20%20%20%20refVar%20%3D%20not%20refVar%0A%20%20%20%20%20%20%20%20%20%20%20%20btn.Text%20%3D%20name%20..%20%22%3A%20%22%20..%20(refVar%20and%20%22ON%22%20or%20%22OFF%22)%0A%20%20%20%20%20%20%20%20%20%20%20%20stroke.Color%20%3D%20refVar%20and%20Color3.fromRGB(0%2C%20255%2C%20100)%20or%20Color3.fromRGB(255%2C%2050%2C%2050)%0A%20%20%20%20%20%20%20%20%20%20%20%20onClick(refVar)%0A%20%20%20%20%20%20%20%20end)%0A%20%20%20%20end%0A%0A%20%20%20%20addButton(%22ESP%22%2C%2060%2C%20ESP_ENABLED%2C%20function(v)%20ESP_ENABLED%20%3D%20v%20end)%0A%20%20%20%20addButton(%22AIMBOT%22%2C%20120%2C%20AIMBOT_ENABLED%2C%20function(v)%20AIMBOT_ENABLED%20%3D%20v%20end)%0A%20%20%20%20addButton(%22SNOW%20FOV%22%2C%20180%2C%20SNOW_FOV%2C%20function(v)%20SNOW_FOV%20%3D%20v%20end)%0A%0A%20%20%20%20local%20noclipButton%20%3D%20Instance.new(%22TextButton%22%2C%20panel)%0A%20%20%20%20noclipButton.Size%20%3D%20UDim2.new(0%2C%20260%2C%200%2C%2050)%0A%20%20%20%20noclipButton.Position%20%3D%20UDim2.new(0%2C%2020%2C%200%2C%20300)%0A%20%20%20%20noclipButton.Text%20%3D%20%22%E2%98%A0%EF%B8%8F%20NoFly%20(Atravessar)%22%0A%20%20%20%20noclipButton.BackgroundColor3%20%3D%20Color3.fromRGB(40%2C%2040%2C%2040)%0A%20%20%20%20noclipButton.TextColor3%20%3D%20Color3.new(1%2C%201%2C%201)%0A%20%20%20%20noclipButton.Font%20%3D%20Enum.Font.GothamBlack%0A%20%20%20%20noclipButton.TextSize%20%3D%2018%0A%0A%20%20%20%20noclipButton.MouseButton1Click%3AConnect(function()%0A%20%20%20%20%20%20%20%20noclip%20%3D%20not%20noclip%0A%20%20%20%20%20%20%20%20noclipButton.Text%20%3D%20noclip%20and%20%22%E2%9C%85%20NoFly%20ATIVADO%22%20or%20%22%E2%98%A0%EF%B8%8F%20NoFly%20(Atravessar)%22%0A%20%20%20%20end)%0A%0A%20%20%20%20local%20fovSlider%20%3D%20Instance.new(%22TextButton%22%2C%20panel)%0A%20%20%20%20fovSlider.Size%20%3D%20UDim2.new(0%2C%20260%2C%200%2C%2050)%0A%20%20%20%20fovSlider.Position%20%3D%20UDim2.new(0%2C%2020%2C%200%2C%20370)%0A%20%20%20%20fovSlider.Text%20%3D%20%22Ajustar%20FOV%22%0A%20%20%20%20fovSlider.BackgroundColor3%20%3D%20Color3.fromRGB(50%2C%2050%2C%2050)%0A%20%20%20%20fovSlider.TextColor3%20%3D%20Color3.fromRGB(255%2C%20255%2C%20255)%0A%20%20%20%20fovSlider.Font%20%3D%20Enum.Font.GothamBlack%0A%20%20%20%20fovSlider.TextSize%20%3D%2018%0A%0A%20%20%20%20fovSlider.MouseButton1Click%3AConnect(function()%0A%20%20%20%20%20%20%20%20FOV_RADIUS%20%3D%20FOV_RADIUS%20%2B%2010%0A%20%20%20%20end)%0A%0A%20%20%20%20menuGui.Enabled%20%3D%20false%0Aend%0A%0A--%20Painel%20de%20Key%0Alocal%20function%20createKeySystem()%0A%20%20%20%20local%20screenGui%20%3D%20Instance.new(%22ScreenGui%22%2C%20LocalPlayer.PlayerGui)%0A%20%20%20%20screenGui.Name%20%3D%20%22KeySystemMenu%22%0A%20%20%20%20screenGui.ResetOnSpawn%20%3D%20false%0A%0A%20%20%20%20local%20mainFrame%20%3D%20Instance.new(%22Frame%22%2C%20screenGui)%0A%20%20%20%20mainFrame.Size%20%3D%20UDim2.new(0%2C%20400%2C%200%2C%20250)%0A%20%20%20%20mainFrame.Position%20%3D%20UDim2.new(0.5%2C%20-200%2C%200.5%2C%20-125)%0A%20%20%20%20mainFrame.BackgroundColor3%20%3D%20Color3.fromRGB(20%2C%2020%2C%2020)%0A%0A%20%20%20%20Instance.new(%22UICorner%22%2C%20mainFrame).CornerRadius%20%3D%20UDim.new(0%2C%2010)%0A%20%20%20%20Instance.new(%22UIStroke%22%2C%20mainFrame).Color%20%3D%20Color3.fromRGB(150%2C%200%2C%20255)%0A%0A%20%20%20%20local%20title%20%3D%20Instance.new(%22TextLabel%22%2C%20mainFrame)%0A%20%20%20%20title.Size%20%3D%20UDim2.new(1%2C%200%2C%200%2C%2040)%0A%20%20%20%20title.Text%20%3D%20%22%F0%9F%A7%95%20Ceifador%20Menu%20v1%20-%209M%20Vazamentos%F0%9F%A7%95%22%0A%20%20%20%20title.Font%20%3D%20Enum.Font.GothamBold%0A%20%20%20%20title.TextSize%20%3D%2020%0A%20%20%20%20title.TextColor3%20%3D%20Color3.fromRGB(255%2C%20255%2C%20255)%0A%20%20%20%20title.BackgroundTransparency%20%3D%201%0A%0A%20%20%20%20local%20keyInput%20%3D%20Instance.new(%22TextBox%22%2C%20mainFrame)%0A%20%20%20%20keyInput.Size%20%3D%20UDim2.new(0%2C%20300%2C%200%2C%2040)%0A%20%20%20%20keyInput.Position%20%3D%20UDim2.new(0.5%2C%20-150%2C%200%2C%2060)%0A%20%20%20%20keyInput.PlaceholderText%20%3D%20%22Coloque%20a%20key...%22%0A%20%20%20%20keyInput.BackgroundColor3%20%3D%20Color3.fromRGB(30%2C%2030%2C%2030)%0A%20%20%20%20keyInput.TextColor3%20%3D%20Color3.fromRGB(255%2C%20255%2C%20255)%0A%20%20%20%20keyInput.Font%20%3D%20Enum.Font.Gotham%0A%20%20%20%20keyInput.TextSize%20%3D%2018%0A%0A%20%20%20%20Instance.new(%22UICorner%22%2C%20keyInput).CornerRadius%20%3D%20UDim.new(0%2C%208)%0A%0A%20%20%20%20local%20checkButton%20%3D%20Instance.new(%22TextButton%22%2C%20mainFrame)%0A%20%20%20%20checkButton.Size%20%3D%20UDim2.new(0%2C%20300%2C%200%2C%2040)%0A%20%20%20%20checkButton.Position%20%3D%20UDim2.new(0.5%2C%20-150%2C%200%2C%20120)%0A%20%20%20%20checkButton.Text%20%3D%20%22%F0%9F%94%92%20Checkar%20Key%22%0A%20%20%20%20checkButton.BackgroundColor3%20%3D%20Color3.fromRGB(50%2C%2050%2C%2050)%0A%20%20%20%20checkButton.TextColor3%20%3D%20Color3.fromRGB(0%2C%20255%2C%200)%0A%20%20%20%20checkButton.Font%20%3D%20Enum.Font.GothamBold%0A%20%20%20%20checkButton.TextSize%20%3D%2018%0A%0A%20%20%20%20Instance.new(%22UICorner%22%2C%20checkButton).CornerRadius%20%3D%20UDim.new(0%2C%208)%0A%0A%20%20%20%20checkButton.MouseButton1Click%3AConnect(function()%0A%20%20%20%20%20%20%20%20if%20keyInput.Text%20%3D%3D%20KEY_CORRETA%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20screenGui%3ADestroy()%0A%20%20%20%20%20%20%20%20%20%20%20%20createMenu()%0A%20%20%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20%20%20%20%20keyInput.Text%20%3D%20%22%22%0A%20%20%20%20%20%20%20%20%20%20%20%20keyInput.PlaceholderText%20%3D%20%22%E2%9D%8C%20Key%20Incorreta!%22%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end)%0Aend%0A%0A--%20Come%C3%A7ar%20chamando%20o%20Key%20System%0AcreateKeySystem()%0A%0A--%20Input%20para%20abrir%2Ffechar%20o%20menu%0AUserInputService.InputBegan%3AConnect(function(input%2C%20gameProcessed)%0A%20%20%20%20if%20not%20gameProcessed%20then%0A%20%20%20%20%20%20%20%20if%20input.KeyCode%20%3D%3D%20Enum.KeyCode.N%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20menuGui%20then%20menuGui.Enabled%20%3D%20true%20end%0A%20%20%20%20%20%20%20%20elseif%20input.KeyCode%20%3D%3D%20Enum.KeyCode.H%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20menuGui%20then%20menuGui.Enabled%20%3D%20false%20end%0A%20%20%20%20%20%20%20%20elseif%20input.UserInputType%20%3D%3D%20Enum.UserInputType.MouseButton1%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20shooting%20%3D%20true%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0Aend)%0A%0AUserInputService.InputEnded%3AConnect(function(input%2C%20gameProcessed)%0A%20%20%20%20if%20not%20gameProcessed%20then%0A%20%20%20%20%20%20%20%20if%20input.UserInputType%20%3D%3D%20Enum.UserInputType.MouseButton1%20then%0A%20%20%20%20%20%20%20%20%20%20%20%20shooting%20%3D%20false%0A%20%20%20%20%20%20%20%20end%0A%20%20%20%20end%0Aend)%0A
+-- Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+repeat wait() until LocalPlayer:FindFirstChild("PlayerGui")
+
+-- Variáveis globais
+local ESP_ENABLED = false
+local AIMBOT_ENABLED = false
+local SNOW_FOV = false
+local ESP_COLOR = Color3.fromRGB(0, 255, 255)
+local ESP_OBJECTS = {}
+local FOV_RADIUS = 80
+local noclip = false
+local menuOpen = false
+local menuGui
+local KEY_CORRETA = "9M"
+local shooting = false
+
+-- Funções auxiliares
+local function getClosestPlayer()
+    local closest, dist = nil, math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local pos, onScreen = camera:WorldToViewportPoint(player.Character.Head.Position)
+            if onScreen then
+                local mouse = LocalPlayer:GetMouse()
+                local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+                if distance < dist and distance <= FOV_RADIUS then
+                    closest = player
+                    dist = distance
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Aimbot
+RunService.RenderStepped:Connect(function()
+    if AIMBOT_ENABLED and shooting then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            if target.Team ~= LocalPlayer.Team then
+                camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.Head.Position)
+            end
+        end
+    end
+end)
+
+-- ESP
+local function createESP(player)
+    local box = Drawing.new("Square")
+    box.Color = ESP_COLOR
+    box.Thickness = 2
+    box.Transparency = 1
+    box.Filled = false
+    ESP_OBJECTS[player] = box
+end
+
+local function removeESP(player)
+    if ESP_OBJECTS[player] then
+        ESP_OBJECTS[player]:Remove()
+        ESP_OBJECTS[player] = nil
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not ESP_ENABLED then
+        for _, box in pairs(ESP_OBJECTS) do box.Visible = false end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                if not ESP_OBJECTS[player] then
+                    createESP(player)
+                end
+                local head = player.Character.Head
+                local pos, visible = camera:WorldToViewportPoint(head.Position)
+                local size = (camera:WorldToViewportPoint(head.Position + Vector3.new(2, 3, 0)) - camera:WorldToViewportPoint(head.Position - Vector3.new(2, 3, 0))).Magnitude
+                local box = ESP_OBJECTS[player]
+                box.Size = Vector2.new(size, size * 1.5)
+                box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
+                box.Color = ESP_COLOR
+                box.Visible = visible
+            else
+                removeESP(player)
+            end
+        else
+            removeESP(player)
+        end
+    end
+end)
+
+-- Snow FOV
+local snowCircle
+RunService.RenderStepped:Connect(function()
+    if SNOW_FOV then
+        if not snowCircle then
+            snowCircle = Drawing.new("Circle")
+            snowCircle.Color = Color3.fromRGB(200, 200, 255)
+            snowCircle.Thickness = 1.5
+            snowCircle.Radius = FOV_RADIUS
+            snowCircle.Transparency = 0.6
+            snowCircle.Filled = false
+        end
+        local mouse = LocalPlayer:GetMouse()
+        snowCircle.Position = Vector2.new(mouse.X, mouse.Y)
+        snowCircle.Radius = FOV_RADIUS
+        snowCircle.Visible = true
+    elseif snowCircle then
+        snowCircle.Visible = false
+    end
+end)
+
+-- NoClip
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide == true then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- Menu Futurista
+local function createMenu()
+    menuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    menuGui.Name = "FuturisticMenu"
+    menuGui.ResetOnSpawn = false
+
+    local panel = Instance.new("Frame", menuGui)
+    panel.Size = UDim2.new(0, 300, 0, 420)
+    panel.Position = UDim2.new(0, 20, 0, 20)
+    panel.BackgroundTransparency = 0.25
+    panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    panel.BorderSizePixel = 0
+
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
+    Instance.new("UIStroke", panel).Color = Color3.fromRGB(0, 255, 255)
+
+    local title = Instance.new("TextLabel", panel)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "☣ CEIFADOR GUI ☣"
+    title.TextColor3 = Color3.fromRGB(0, 255, 255)
+    title.TextStrokeTransparency = 0.6
+    title.Font = Enum.Font.SciFi
+    title.TextSize = 28
+
+    local dragging, dragStart, startPos
+    panel.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = panel.Position
+        end
+    end)
+    panel.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    panel.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    local function addButton(name, yPos, refVar, onClick)
+        local btn = Instance.new("TextButton", panel)
+        btn.Size = UDim2.new(0, 260, 0, 50)
+        btn.Position = UDim2.new(0, 20, 0, yPos)
+        btn.Text = name .. ": OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        btn.TextColor3 = Color3.fromRGB(0, 255, 255)
+        btn.Font = Enum.Font.SciFi
+        btn.TextSize = 22
+        btn.AutoButtonColor = false
+
+        local stroke = Instance.new("UIStroke", btn)
+        stroke.Color = Color3.fromRGB(255, 50, 50)
+        stroke.Thickness = 1.5
+
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+        btn.MouseButton1Click:Connect(function()
+            refVar = not refVar
+            btn.Text = name .. ": " .. (refVar and "ON" or "OFF")
+            stroke.Color = refVar and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50)
+            onClick(refVar)
+        end)
+    end
+
+    addButton("ESP", 60, ESP_ENABLED, function(v) ESP_ENABLED = v end)
+    addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
+    addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
+
+    local noclipButton = Instance.new("TextButton", panel)
+    noclipButton.Size = UDim2.new(0, 260, 0, 50)
+    noclipButton.Position = UDim2.new(0, 20, 0, 300)
+    noclipButton.Text = "☠️ NoFly (Atravessar)"
+    noclipButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    noclipButton.TextColor3 = Color3.new(1, 1, 1)
+    noclipButton.Font = Enum.Font.GothamBlack
+    noclipButton.TextSize = 18
+
+    noclipButton.MouseButton1Click:Connect(function()
+        noclip = not noclip
+        noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
+    end)
+
+    local fovSlider = Instance.new("TextButton", panel)
+    fovSlider.Size = UDim2.new(0, 260, 0, 50)
+    fovSlider.Position = UDim2.new(0, 20, 0, 370)
+    fovSlider.Text = "Ajustar FOV"
+    fovSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovSlider.Font = Enum.Font.GothamBlack
+    fovSlider.TextSize = 18
+
+    fovSlider.MouseButton1Click:Connect(function()
+        FOV_RADIUS = FOV_RADIUS + 10
+    end)
+
+    menuGui.Enabled = false
+end
+
+-- Painel de Key
+local function createKeySystem()
+    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    screenGui.Name = "KeySystemMenu"
+    screenGui.ResetOnSpawn = false
+
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Size = UDim2.new(0, 400, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+    Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(150, 0, 255)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Text = "🧕 Ceifador Menu v1 - 9M Vazamentos🧕"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 20
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+
+    local keyInput = Instance.new("TextBox", mainFrame)
+    keyInput.Size = UDim2.new(0, 300, 0, 40)
+    keyInput.Position = UDim2.new(0.5, -150, 0, 60)
+    keyInput.PlaceholderText = "Coloque a key..."
+    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.Font = Enum.Font.Gotham
+    keyInput.TextSize = 18
+
+    Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0, 8)
+
+    local checkButton = Instance.new("TextButton", mainFrame)
+    checkButton.Size = UDim2.new(0, 300, 0, 40)
+    checkButton.Position = UDim2.new(0.5, -150, 0, 120)
+    checkButton.Text = "🔒 Checkar Key"
+    checkButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    checkButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+    checkButton.Font = Enum.Font.GothamBold
+    checkButton.TextSize = 18
+
+    Instance.new("UICorner", checkButton).CornerRadius = UDim.new(0, 8)
+
+    checkButton.MouseButton1Click:Connect(function()
+        if keyInput.Text == KEY_CORRETA then
+            screenGui:Destroy()
+            createMenu()
+        else
+            keyInput.Text = ""
+            keyInput.PlaceholderText = "❌ Key Incorreta!"
+        end
+    end)
+end
+
+-- Começar chamando o Key System
+createKeySystem()
+
+-- Input para abrir/fechar o menu
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.N then
+            if menuGui then menuGui.Enabled = true end
+        elseif input.KeyCode == Enum.KeyCode.H then
+            if menuGui then menuGui.Enabled = false end
+        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+            shooting = true
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            shooting = false
+        end
+    end
+end)
