@@ -3,9 +3,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local camera = workspace.CurrentCamera
-
-repeat wait() until LocalPlayer:FindFirstChild("PlayerGui")
 
 -- Variáveis globais
 local ESP_ENABLED = false
@@ -15,10 +14,11 @@ local ESP_COLOR = Color3.fromRGB(0, 255, 255)
 local ESP_OBJECTS = {}
 local FOV_RADIUS = 80
 local noclip = false
-local menuOpen = false
-local menuGui
-local KEY_CORRETA = "9M"
 local shooting = false
+local menuGui
+local minimizedGui
+local dragging, dragInput, dragStart, startPos
+local snowCircle
 
 -- Funções auxiliares
 local function getClosestPlayer()
@@ -58,19 +58,30 @@ local function createESP(player)
     box.Thickness = 2
     box.Transparency = 1
     box.Filled = false
-    ESP_OBJECTS[player] = box
+
+    local healthText = Drawing.new("Text")
+    healthText.Color = Color3.fromRGB(0, 255, 0)
+    healthText.Size = 16
+    healthText.Center = true
+    healthText.Outline = true
+
+    ESP_OBJECTS[player] = {Box = box, Health = healthText}
 end
 
 local function removeESP(player)
     if ESP_OBJECTS[player] then
-        ESP_OBJECTS[player]:Remove()
+        ESP_OBJECTS[player].Box:Remove()
+        ESP_OBJECTS[player].Health:Remove()
         ESP_OBJECTS[player] = nil
     end
 end
 
 RunService.RenderStepped:Connect(function()
     if not ESP_ENABLED then
-        for _, box in pairs(ESP_OBJECTS) do box.Visible = false end
+        for _, obj in pairs(ESP_OBJECTS) do
+            obj.Box.Visible = false
+            obj.Health.Visible = false
+        end
         return
     end
 
@@ -84,11 +95,15 @@ RunService.RenderStepped:Connect(function()
                 local head = player.Character.Head
                 local pos, visible = camera:WorldToViewportPoint(head.Position)
                 local size = (camera:WorldToViewportPoint(head.Position + Vector3.new(2, 3, 0)) - camera:WorldToViewportPoint(head.Position - Vector3.new(2, 3, 0))).Magnitude
-                local box = ESP_OBJECTS[player]
-                box.Size = Vector2.new(size, size * 1.5)
-                box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
-                box.Color = ESP_COLOR
-                box.Visible = visible
+                local obj = ESP_OBJECTS[player]
+                obj.Box.Size = Vector2.new(size, size * 1.5)
+                obj.Box.Position = Vector2.new(pos.X - obj.Box.Size.X/2, pos.Y - obj.Box.Size.Y/2)
+                obj.Box.Color = ESP_COLOR
+                obj.Box.Visible = visible
+
+                obj.Health.Position = Vector2.new(pos.X, pos.Y - obj.Box.Size.Y/2 - 10)
+                obj.Health.Text = math.floor(humanoid.Health) .. " HP"
+                obj.Health.Visible = visible
             else
                 removeESP(player)
             end
@@ -99,19 +114,16 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Snow FOV
-local snowCircle
 RunService.RenderStepped:Connect(function()
     if SNOW_FOV then
         if not snowCircle then
             snowCircle = Drawing.new("Circle")
-            snowCircle.Color = Color3.fromRGB(200, 200, 255)
-            snowCircle.Thickness = 1.5
-            snowCircle.Radius = FOV_RADIUS
-            snowCircle.Transparency = 0.6
+            snowCircle.Thickness = 2
+            snowCircle.Transparency = 0.5
             snowCircle.Filled = false
         end
         local mouse = LocalPlayer:GetMouse()
-        snowCircle.Position = Vector2.new(mouse.X, mouse.Y)
+        snowCircle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
         snowCircle.Radius = FOV_RADIUS
         snowCircle.Visible = true
     elseif snowCircle then
@@ -123,191 +135,164 @@ end)
 RunService.Stepped:Connect(function()
     if noclip and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide == true then
+            if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
     end
 end)
 
--- Menu Futurista
+-- Função para fazer draggable
+local function makeDraggable(frame)
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Criar o Menu
 local function createMenu()
-    menuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    menuGui = Instance.new("ScreenGui")
     menuGui.Name = "FuturisticMenu"
     menuGui.ResetOnSpawn = false
+    menuGui.Parent = PlayerGui
 
     local panel = Instance.new("Frame", menuGui)
-    panel.Size = UDim2.new(0, 300, 0, 420)
-    panel.Position = UDim2.new(0, 20, 0, 20)
-    panel.BackgroundTransparency = 0.25
-    panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    panel.Size = UDim2.new(0, 300, 0, 500)
+    panel.Position = UDim2.new(0.5, -150, 0.5, -250)
+    panel.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+    panel.BackgroundTransparency = 0.1
     panel.BorderSizePixel = 0
+    makeDraggable(panel)
 
-    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
-    Instance.new("UIStroke", panel).Color = Color3.fromRGB(0, 255, 255)
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 15)
+
+    local stroke = Instance.new("UIStroke", panel)
+    stroke.Thickness = 2
+
+    RunService.RenderStepped:Connect(function()
+        local t = tick() * 100
+        stroke.Color = Color3.fromHSV((t % 255) / 255, 1, 1)
+    end)
+
+    local minimizeButton = Instance.new("TextButton", panel)
+    minimizeButton.Size = UDim2.new(0, 40, 0, 40)
+    minimizeButton.Position = UDim2.new(1, -50, 0, 10)
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    minimizeButton.Text = "_"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.TextSize = 22
+    Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(0, 8)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        menuGui.Enabled = false
+        minimizedGui.Enabled = true
+    end)
 
     local title = Instance.new("TextLabel", panel)
-    title.Size = UDim2.new(1, 0, 0, 40)
+    title.Size = UDim2.new(1, 0, 0, 50)
     title.Position = UDim2.new(0, 0, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "☣ CEIFADOR GUI ☣"
-    title.TextColor3 = Color3.fromRGB(0, 255, 255)
-    title.TextStrokeTransparency = 0.6
+    title.Text = "☣ CEIFADOR V2 ☣"
+    title.TextColor3 = Color3.fromRGB(0, 255, 200)
     title.Font = Enum.Font.SciFi
     title.TextSize = 28
 
-    local dragging, dragStart, startPos
-    panel.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = panel.Position
-        end
-    end)
-    panel.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    panel.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
+    local function addButton(text, posY, callback)
+        local button = Instance.new("TextButton", panel)
+        button.Size = UDim2.new(0, 260, 0, 50)
+        button.Position = UDim2.new(0, 20, 0, posY)
+        button.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+        button.Text = text
+        button.TextColor3 = Color3.fromRGB(0, 255, 200)
+        button.Font = Enum.Font.SciFi
+        button.TextSize = 22
+        Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
-    local function addButton(name, yPos, refVar, onClick)
-        local btn = Instance.new("TextButton", panel)
-        btn.Size = UDim2.new(0, 260, 0, 50)
-        btn.Position = UDim2.new(0, 20, 0, yPos)
-        btn.Text = name .. ": OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        btn.TextColor3 = Color3.fromRGB(0, 255, 255)
-        btn.Font = Enum.Font.SciFi
-        btn.TextSize = 22
-        btn.AutoButtonColor = false
-
-        local stroke = Instance.new("UIStroke", btn)
-        stroke.Color = Color3.fromRGB(255, 50, 50)
-        stroke.Thickness = 1.5
-
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-
-        btn.MouseButton1Click:Connect(function()
-            refVar = not refVar
-            btn.Text = name .. ": " .. (refVar and "ON" or "OFF")
-            stroke.Color = refVar and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50)
-            onClick(refVar)
-        end)
+        button.MouseButton1Click:Connect(callback)
     end
 
-    addButton("ESP", 60, ESP_ENABLED, function(v) ESP_ENABLED = v end)
-    addButton("AIMBOT", 120, AIMBOT_ENABLED, function(v) AIMBOT_ENABLED = v end)
-    addButton("SNOW FOV", 180, SNOW_FOV, function(v) SNOW_FOV = v end)
-
-    local noclipButton = Instance.new("TextButton", panel)
-    noclipButton.Size = UDim2.new(0, 260, 0, 50)
-    noclipButton.Position = UDim2.new(0, 20, 0, 300)
-    noclipButton.Text = "☠️ NoFly (Atravessar)"
-    noclipButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    noclipButton.TextColor3 = Color3.new(1, 1, 1)
-    noclipButton.Font = Enum.Font.GothamBlack
-    noclipButton.TextSize = 18
-
-    noclipButton.MouseButton1Click:Connect(function()
-        noclip = not noclip
-        noclipButton.Text = noclip and "✅ NoFly ATIVADO" or "☠️ NoFly (Atravessar)"
+    addButton("ESP", 70, function()
+        ESP_ENABLED = not ESP_ENABLED
     end)
 
-    local fovSlider = Instance.new("TextButton", panel)
-    fovSlider.Size = UDim2.new(0, 260, 0, 50)
-    fovSlider.Position = UDim2.new(0, 20, 0, 370)
-    fovSlider.Text = "Ajustar FOV"
-    fovSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    fovSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
-    fovSlider.Font = Enum.Font.GothamBlack
-    fovSlider.TextSize = 18
+    addButton("AIMBOT", 140, function()
+        AIMBOT_ENABLED = not AIMBOT_ENABLED
+    end)
 
-    fovSlider.MouseButton1Click:Connect(function()
+    addButton("SNOW FOV", 210, function()
+        SNOW_FOV = not SNOW_FOV
+    end)
+
+    addButton("NOCLIP", 280, function()
+        noclip = not noclip
+    end)
+
+    addButton("MUDAR COR FOV", 350, function()
+        if snowCircle then
+            snowCircle.Color = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255))
+        end
+    end)
+
+    addButton("AUMENTAR FOV", 420, function()
         FOV_RADIUS = FOV_RADIUS + 10
     end)
-
-    menuGui.Enabled = false
 end
 
--- Painel de Key
-local function createKeySystem()
-    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    screenGui.Name = "KeySystemMenu"
-    screenGui.ResetOnSpawn = false
+local function createMinimizedGui()
+    minimizedGui = Instance.new("ScreenGui")
+    minimizedGui.Name = "MinimizedMenu"
+    minimizedGui.Enabled = false
+    minimizedGui.Parent = PlayerGui
 
-    local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Size = UDim2.new(0, 400, 0, 250)
-    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    local bar = Instance.new("TextButton", minimizedGui)
+    bar.Size = UDim2.new(0, 80, 0, 30)
+    bar.Position = UDim2.new(0.5, -40, 0.5, -15)
+    bar.BackgroundColor3 = Color3.fromRGB(40, 0, 80)
+    bar.Text = "+"
+    bar.TextColor3 = Color3.fromRGB(255, 255, 255)
+    bar.Font = Enum.Font.GothamBold
+    bar.TextSize = 24
 
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
-    Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(150, 0, 255)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 10)
 
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Text = "🧕 Ceifador Menu v1 - 9M Vazamentos🧕"
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 20
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.BackgroundTransparency = 1
+    makeDraggable(bar)
 
-    local keyInput = Instance.new("TextBox", mainFrame)
-    keyInput.Size = UDim2.new(0, 300, 0, 40)
-    keyInput.Position = UDim2.new(0.5, -150, 0, 60)
-    keyInput.PlaceholderText = "Coloque a key..."
-    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyInput.Font = Enum.Font.Gotham
-    keyInput.TextSize = 18
-
-    Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0, 8)
-
-    local checkButton = Instance.new("TextButton", mainFrame)
-    checkButton.Size = UDim2.new(0, 300, 0, 40)
-    checkButton.Position = UDim2.new(0.5, -150, 0, 120)
-    checkButton.Text = "🔒 Checkar Key"
-    checkButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    checkButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-    checkButton.Font = Enum.Font.GothamBold
-    checkButton.TextSize = 18
-
-    Instance.new("UICorner", checkButton).CornerRadius = UDim.new(0, 8)
-
-    checkButton.MouseButton1Click:Connect(function()
-        if keyInput.Text == KEY_CORRETA then
-            screenGui:Destroy()
-            createMenu()
-        else
-            keyInput.Text = ""
-            keyInput.PlaceholderText = "❌ Key Incorreta!"
-        end
+    bar.MouseButton1Click:Connect(function()
+        minimizedGui.Enabled = false
+        menuGui.Enabled = true
     end)
 end
 
--- Começar chamando o Key System
-createKeySystem()
+createMenu()
+createMinimizedGui()
 
--- Input para abrir/fechar o menu
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        if input.KeyCode == Enum.KeyCode.N then
-            if menuGui then menuGui.Enabled = true end
-        elseif input.KeyCode == Enum.KeyCode.H then
-            if menuGui then menuGui.Enabled = false end
-        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-            shooting = true
-        end
-    end
+UserInputService.TouchStarted:Connect(function()
+    shooting = true
 end)
 
-UserInputService.InputEnded:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            shooting = false
-        end
-    end
+UserInputService.TouchEnded:Connect(function()
+    shooting = false
 end)
